@@ -13,9 +13,15 @@
  * @param lparam 
  * @return LRESULT 
  */
-LRESULT mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lparam) {
+LRESULT CALLBACK mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lparam) {
     switch (uint) {
     case WM_DESTROY:
+        PostQuitMessage(0);
+        return 0;
+    case WM_KEYDOWN:
+        if (wparam == VK_F1) {
+            SetCursor((HCURSOR)MAKEINTRESOURCE(32649));
+        }
         PostQuitMessage(0);
         return 0;
     }
@@ -52,7 +58,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
         NULL
     );
     
-    //checks and window loop
+    //error checks and window loop
     if (window == NULL) {
         return 404;
     }
