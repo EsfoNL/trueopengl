@@ -4,6 +4,8 @@
 
 #include <windows.h>
 
+//#include <iostream>
+
 /**
  * @brief window message handler, used by windows.
  * 
@@ -18,12 +20,22 @@ LRESULT CALLBACK mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lp
     case WM_DESTROY:
         PostQuitMessage(0);
         return 0;
-    case WM_KEYDOWN:
-        if (wparam == VK_F1) {
-            SetCursor((HCURSOR)MAKEINTRESOURCE(32649));
+
+    //toggles between arrow pointer and cross pointer
+    case WM_KEYUP:
+    case WM_LBUTTONUP:
+    case WM_RBUTTONUP:
+    {
+        CURSORINFO currentcursor = {};
+        currentcursor.cbSize = sizeof(currentcursor);
+        GetCursorInfo(&currentcursor);
+        if (currentcursor.hCursor == (HCURSOR)LoadCursor(NULL, IDC_CROSS)) {
+            SetCursor(LoadCursor(NULL, IDC_ARROW));
+        } else {
+            SetCursor(LoadCursor(NULL, IDC_CROSS));
         }
-        PostQuitMessage(0);
         return 0;
+        }
     }
     return DefWindowProc(hwnd, uint, wparam, lparam);
 }
