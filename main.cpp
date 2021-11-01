@@ -14,16 +14,20 @@ LRESULT mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lparam) {
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow) {
+    
+    //set up window class
     LPCWSTR windowname = L"HELLO";
     windowname = L"miauw";
     WNDCLASSEXW windclass = {};
     windclass.cbSize = sizeof(windclass);
     windclass.hInstance = hInstance;
     windclass.lpfnWndProc = &mymessageHandler;
-    windclass.lpszClassName = windowname;
-
+    windclass.lpszClassName = windowname;\
+    
+    //registers window class
     RegisterClassExW(&windclass);
 
+    //create window
     HWND window = CreateWindowExW(
         WS_EX_APPWINDOW,
         windowname,
@@ -39,6 +43,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
         NULL
     );
     
+    //checks and window loop
     if (window == NULL) {
         return 404;
     }
