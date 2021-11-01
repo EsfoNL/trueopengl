@@ -4,6 +4,15 @@
 
 #include <windows.h>
 
+/**
+ * @brief window message handler, used by windows.
+ * 
+ * @param hwnd 
+ * @param uint 
+ * @param wparam 
+ * @param lparam 
+ * @return LRESULT 
+ */
 LRESULT mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lparam) {
     switch (uint) {
     case WM_DESTROY:
