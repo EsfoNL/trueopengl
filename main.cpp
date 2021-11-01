@@ -31,7 +31,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
     windclass.cbSize = sizeof(windclass);
     windclass.hInstance = hInstance;
     windclass.lpfnWndProc = &mymessageHandler;
-    windclass.lpszClassName = windowname;\
+    windclass.lpszClassName = windowname;
     
     //registers window class
     RegisterClassExW(&windclass);
