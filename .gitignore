@@ -1,5 +1,4 @@
 main.exe
 test.cpp
 test.exe
-.vscode/launch.json
-.vscode/tasks.json
+.vscode/
