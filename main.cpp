@@ -3,8 +3,8 @@
 #endif
 
 #include <windows.h>
+#include <Gl\gl.h>
 
-//#include <iostream>
 
 /**
  * @brief window message handler, used by windows.
@@ -15,30 +15,7 @@
  * @param lparam 
  * @return LRESULT 
  */
-LRESULT CALLBACK mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lparam) {
-    switch (uint) {
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        return 0;
-
-    //toggles between arrow pointer and cross pointer
-    case WM_KEYUP:
-    case WM_LBUTTONUP:
-    case WM_RBUTTONUP:
-    {
-        CURSORINFO currentcursor = {};
-        currentcursor.cbSize = sizeof(currentcursor);
-        GetCursorInfo(&currentcursor);
-        if (currentcursor.hCursor == (HCURSOR)LoadCursor(NULL, IDC_CROSS)) {
-            SetCursor(LoadCursor(NULL, IDC_ARROW));
-        } else {
-            SetCursor(LoadCursor(NULL, IDC_CROSS));
-        }
-        return 0;
-        }
-    }
-    return DefWindowProc(hwnd, uint, wparam, lparam);
-}
+LRESULT CALLBACK mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lparam);
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow) {
     
@@ -50,6 +27,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
     windclass.hInstance = hInstance;
     windclass.lpfnWndProc = &mymessageHandler;
     windclass.lpszClassName = windowname;
+    
+    
+    bool rgb = false;
     
     //registers window class
     RegisterClassExW(&windclass);
@@ -67,7 +47,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
         NULL,
         NULL,
         hInstance,
-        NULL
+        &rgb
     );
     
     //error checks and window loop
@@ -79,7 +59,42 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
     while (GetMessage(&msg, NULL, 0, 0))
     {
         TranslateMessage(&msg);
+        
+        if (msg.message == WM_KEYUP && msg.wParam == 0x52) {
+            rgb = !rgb;
+        }
+
         DispatchMessage(&msg);
     }
     return 0;
+}
+
+
+LRESULT CALLBACK mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lparam) {
+
+    switch (uint) {
+
+    //triggers when window destroy is called
+    case WM_DESTROY:
+        PostQuitMessage(0);
+        return 0;
+
+    //toggles between arrow pointer and cross pointer
+    //also manages rgb state
+    case WM_KEYUP:
+    case WM_LBUTTONUP:
+    case WM_RBUTTONUP:
+    {
+        CURSORINFO currentcursor = {};
+        currentcursor.cbSize = sizeof(currentcursor);
+        GetCursorInfo(&currentcursor);
+        if (currentcursor.hCursor == (HCURSOR)LoadCursor(NULL, IDC_CROSS)) {
+            SetCursor(LoadCursor(NULL, IDC_ARROW));
+        } else {
+            SetCursor(LoadCursor(NULL, IDC_CROSS));
+        }
+        return 0;
+        }
+    }
+    return DefWindowProc(hwnd, uint, wparam, lparam);
 }
