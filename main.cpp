@@ -4,6 +4,8 @@
 
 #include <windows.h>
 #include <Gl\gl.h>
+#include <thread>
+#include <chrono>
 
 
 /**
@@ -60,8 +62,28 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
     {
         TranslateMessage(&msg);
         
-        if (msg.message == WM_KEYUP && msg.wParam == 0x52) {
-            rgb = !rgb;
+        //! message handeling area
+        switch (msg.message) {
+            //toggles between arrow pointer and cross pointer
+            //also manages rgb state
+            case WM_KEYUP:
+            case WM_LBUTTONUP:
+            case WM_RBUTTONUP:
+                {
+                    switch (msg.wParam)
+                    {
+                    case 0x52:
+                        rgb = !rgb;
+                        break;
+                    
+                    default:
+                        CURSORINFO currentcursor = {};
+                        currentcursor.cbSize = sizeof(currentcursor);
+                        GetCursorInfo(&currentcursor);
+                        //checks if the current cursor is the cross, if not sets it to cross, otherwise sets it to pointer
+                        currentcursor.hCursor == (HCURSOR)LoadCursor(NULL, IDC_CROSS) ? SetCursor(LoadCursor(NULL, IDC_ARROW)) : SetCursor(LoadCursor(NULL, IDC_CROSS));
+                    }
+                }
         }
 
         DispatchMessage(&msg);
@@ -78,23 +100,6 @@ LRESULT CALLBACK mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lp
     case WM_DESTROY:
         PostQuitMessage(0);
         return 0;
-
-    //toggles between arrow pointer and cross pointer
-    //also manages rgb state
-    case WM_KEYUP:
-    case WM_LBUTTONUP:
-    case WM_RBUTTONUP:
-    {
-        CURSORINFO currentcursor = {};
-        currentcursor.cbSize = sizeof(currentcursor);
-        GetCursorInfo(&currentcursor);
-        if (currentcursor.hCursor == (HCURSOR)LoadCursor(NULL, IDC_CROSS)) {
-            SetCursor(LoadCursor(NULL, IDC_ARROW));
-        } else {
-            SetCursor(LoadCursor(NULL, IDC_CROSS));
-        }
-        return 0;
-        }
     }
     return DefWindowProc(hwnd, uint, wparam, lparam);
 }
