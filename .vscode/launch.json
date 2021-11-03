@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
-            "args": [],
+            "args": ["-lgdi32.a"],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],
