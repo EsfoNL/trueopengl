@@ -70,8 +70,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
     }
     ShowWindow(window, nCmdShow);
     MSG msg = { };
-    while (GetMessage(&msg, NULL, 0, 0))
-    {
+    while (GetMessage(&msg, NULL, 0, 0)) {
         TranslateMessage(&msg);
         
         //! message handeling area
@@ -134,6 +133,14 @@ LRESULT CALLBACK mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lp
     return DefWindowProc(hwnd, uint, wparam, lparam);
 }
 
+/**
+ * @brief makes the background of the window go rgb if reference rgb param is true;
+ * 
+ * @param rgb refrence to a bool used for turning rgb on and off
+ * @param globalclock 
+ * @param hwnd 
+ * @param hz 
+ */
 void dorgb(bool &rgb, std::chrono::steady_clock &globalclock, HWND &hwnd, int &hz) {
     std::chrono::time_point untilwaittime = globalclock.now() + std::chrono::seconds(1/hz);
     HDC hdc = GetDC(hwnd);
