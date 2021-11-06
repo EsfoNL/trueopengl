@@ -4,7 +4,6 @@
 
 #include <windows.h>
 #include <Gl\gl.h>
-#include <future>
 #include <chrono>
 #include <string>
 #include <array>
@@ -14,7 +13,7 @@
 
 
 LRESULT CALLBACK mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lparam);
-void dorgb(bool &rgb, std::chrono::steady_clock &globalclock, HWND &hwnd, int &hz);
+int dorgb(bool &rgb, std::chrono::steady_clock &globalclock, HWND &hwnd, int &hz, HBRUSH &backgroundbrush);
 void switchcursor();
 
 /**
@@ -27,7 +26,13 @@ void switchcursor();
  * @return int 
  */
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow) {
-    
+    //variables
+    std::thread nothing;
+    HBRUSH backgroundbrush = CreateSolidBrush(RGB(0,0,0));
+    int hz = 1;
+    bool rgb = false;
+    std::chrono::steady_clock globalclock = std::chrono::steady_clock();
+
     //set up window class
     LPCWSTR windowname = L"HELLO";
     windowname = L"miauw";
@@ -36,13 +41,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
     windclass.hInstance = hInstance;
     windclass.lpfnWndProc = &mymessageHandler;
     windclass.lpszClassName = windowname;
-    
-    int hz = 1;
-    bool rgb = false;
-    bool commanding = false;
-    std::vector<std::string> command = {};
-    std::string commandpart = {};
-    std::chrono::steady_clock globalclock = std::chrono::steady_clock();
+    windclass.hbrBackground = std::ref(backgroundbrush);
 
     
     //registers window class
@@ -61,7 +60,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
         NULL,
         NULL,
         hInstance,
-        &rgb
+        NULL
     );
     
     //error checks and window loop
@@ -81,28 +80,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
             case WM_LBUTTONUP:
             case WM_RBUTTONUP:
                 {   
-                    //TODO implement commands
-                    if (commanding) {
-                        commanding = false;
-                        if (msg.wParam = VK_RETURN) {
-                            
-                        }
-                    }else {
-                        switch (msg.wParam) {
-                            //triggers on r and toggles rgb on
-                            case 0x52:
-                                rgb = !rgb;
-                                if (rgb) {
-                                    std::future<void> nothing = std::async(dorgb, std::ref(rgb), std::ref(globalclock), std::ref(window), std::ref(hz));
-                                }
-                                break;
-                            case VK_OEM_MINUS:
-                                commanding = true;
-                                command = {};
-                                commandpart = "";
-                            default:
-                                switchcursor();
-                        }
+                    switch (msg.wParam) {
+                        //triggers on r and toggles rgb on
+                        case 0x52:
+                            rgb = !rgb;
+                            if (rgb) {
+                                nothing = std::thread(dorgb, std::ref(rgb), std::ref(globalclock), std::ref(window), std::ref(hz), std::ref(backgroundbrush));
+                            }
+                            break;
+                        default:
+                            switchcursor();
                     }
                 }
         }
@@ -141,10 +128,9 @@ LRESULT CALLBACK mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lp
  * @param hwnd 
  * @param hz 
  */
-void dorgb(bool &rgb, std::chrono::steady_clock &globalclock, HWND &hwnd, int &hz) {
+int dorgb(bool &rgb, std::chrono::steady_clock &globalclock, HWND &hwnd, int &hz, HBRUSH &backgroundbrush) {
     std::chrono::time_point untilwaittime = globalclock.now() + std::chrono::seconds(1/hz);
     HDC hdc = GetDC(hwnd);
-    HBRUSH hbr;
     RECT rc;
     std::uniform_int_distribution randgen(0,255);
     std::random_device randsource;
@@ -152,12 +138,12 @@ void dorgb(bool &rgb, std::chrono::steady_clock &globalclock, HWND &hwnd, int &h
 
     while (rgb) {
         color = RGB(randgen(randsource),randgen(randsource),randgen(randsource));
-        hbr = CreateSolidBrush(color);
+        backgroundbrush = CreateSolidBrush(color);
         GetClientRect(hwnd, &rc); 
         SetMapMode(hdc, MM_ANISOTROPIC); 
         SetWindowExtEx(hdc, 100, 100, NULL); 
         SetViewportExtEx(hdc, rc.right, rc.bottom, NULL); 
-        FillRect(hdc, &rc, hbr);
+        FillRect(hdc, &rc, backgroundbrush);
         if (globalclock.now() > untilwaittime) {
             untilwaittime = globalclock.now();
         } else {
@@ -165,6 +151,8 @@ void dorgb(bool &rgb, std::chrono::steady_clock &globalclock, HWND &hwnd, int &h
         }
         untilwaittime += std::chrono::seconds(1/hz);
     }
+
+    return 0;
 }
 
 /**
