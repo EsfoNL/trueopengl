@@ -116,6 +116,9 @@ LRESULT CALLBACK mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lp
     case WM_DESTROY:
         PostQuitMessage(0);
         return 0;
+    case WM_SETCURSOR:
+        SetCursor(LoadCursor(NULL, IDC_ARROW));
+        return false;
     }
     return DefWindowProc(hwnd, uint, wparam, lparam);
 }
