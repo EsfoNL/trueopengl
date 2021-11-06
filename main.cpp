@@ -11,10 +11,10 @@
 #include <random>
 #include <thread>
 
-
+void paintwindow(HBRUSH brush, HDC &hdc, HWND &hwnd);
 LRESULT CALLBACK mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lparam);
-int dorgb(bool &rgb, std::chrono::steady_clock &globalclock, HWND &hwnd, int &hz, HBRUSH &backgroundbrush);
-void switchcursor();
+int dorgb(bool &rgb, std::chrono::steady_clock &globalclock, HWND &hwnd, int &hz, HBRUSH &backgroundbrush, HDC &hdc);
+void switchcursor(HCURSOR &cursor, HWND &hwnd);
 
 /**
  * @brief win main function
@@ -32,6 +32,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
     int hz = 1;
     bool rgb = false;
     std::chrono::steady_clock globalclock = std::chrono::steady_clock();
+    HCURSOR cursor = (HCURSOR)LoadCursor(NULL, IDC_CROSS);
 
     //set up window class
     LPCWSTR windowname = L"HELLO";
@@ -42,6 +43,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
     windclass.lpfnWndProc = &mymessageHandler;
     windclass.lpszClassName = windowname;
     windclass.hbrBackground = std::ref(backgroundbrush);
+    windclass.hCursor = cursor;
 
     
     //registers window class
@@ -69,6 +71,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
     }
     ShowWindow(window, nCmdShow);
     MSG msg = { };
+
+    HDC hdc = GetDC(window);
+
     while (GetMessage(&msg, NULL, 0, 0)) {
         TranslateMessage(&msg);
         
@@ -85,13 +90,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
                         case 0x52:
                             rgb = !rgb;
                             if (rgb) {
-                                nothing = std::thread(dorgb, std::ref(rgb), std::ref(globalclock), std::ref(window), std::ref(hz), std::ref(backgroundbrush));
+                                std::thread(dorgb, std::ref(rgb), std::ref(globalclock), std::ref(window), std::ref(hz), std::ref(backgroundbrush), std::ref(hdc)).detach();
+                            } else {
+
                             }
                             break;
                         default:
-                            switchcursor();
+                            switchcursor(cursor, window);
                     }
                 }
+            case WM_PAINT:
+                paintwindow(backgroundbrush, hdc, window);
         }
 
         DispatchMessage(&msg);
@@ -116,9 +125,6 @@ LRESULT CALLBACK mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lp
     case WM_DESTROY:
         PostQuitMessage(0);
         return 0;
-    case WM_SETCURSOR:
-        SetCursor(LoadCursor(NULL, IDC_ARROW));
-        return false;
     }
     return DefWindowProc(hwnd, uint, wparam, lparam);
 }
@@ -130,11 +136,10 @@ LRESULT CALLBACK mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lp
  * @param globalclock 
  * @param hwnd 
  * @param hz 
+ * @param backgroundbrush 
  */
-int dorgb(bool &rgb, std::chrono::steady_clock &globalclock, HWND &hwnd, int &hz, HBRUSH &backgroundbrush) {
+int dorgb(bool &rgb, std::chrono::steady_clock &globalclock, HWND &hwnd, int &hz, HBRUSH &backgroundbrush, HDC &hdc) {
     std::chrono::time_point untilwaittime = globalclock.now() + std::chrono::seconds(1/hz);
-    HDC hdc = GetDC(hwnd);
-    RECT rc;
     std::uniform_int_distribution randgen(0,255);
     std::random_device randsource;
     COLORREF color;
@@ -142,11 +147,7 @@ int dorgb(bool &rgb, std::chrono::steady_clock &globalclock, HWND &hwnd, int &hz
     while (rgb) {
         color = RGB(randgen(randsource),randgen(randsource),randgen(randsource));
         backgroundbrush = CreateSolidBrush(color);
-        GetClientRect(hwnd, &rc); 
-        SetMapMode(hdc, MM_ANISOTROPIC); 
-        SetWindowExtEx(hdc, 100, 100, NULL); 
-        SetViewportExtEx(hdc, rc.right, rc.bottom, NULL); 
-        FillRect(hdc, &rc, backgroundbrush);
+        paintwindow(backgroundbrush, hdc, hwnd);
         if (globalclock.now() > untilwaittime) {
             untilwaittime = globalclock.now();
         } else {
@@ -162,10 +163,18 @@ int dorgb(bool &rgb, std::chrono::steady_clock &globalclock, HWND &hwnd, int &hz
  * @brief toggles between arrow and cross pointer, if not one of these it switches to cross
  * 
  */
-void switchcursor() {
-    CURSORINFO currentcursor = {};
-    currentcursor.cbSize = sizeof(currentcursor);
-    GetCursorInfo(&currentcursor);
+void switchcursor(HCURSOR &cursor, HWND &hwnd) {
     //checks if the current cursor is the cross, if not sets it to cross, otherwise sets it to pointer
-    currentcursor.hCursor == (HCURSOR)LoadCursor(NULL, IDC_CROSS) ? SetCursor(LoadCursor(NULL, IDC_ARROW)) : SetCursor(LoadCursor(NULL, IDC_CROSS));
+    cursor == (HCURSOR)LoadCursor(NULL, IDC_CROSS) ? cursor = (HCURSOR)LoadCursor(NULL, IDC_ARROW) : cursor = (HCURSOR)LoadCursor(NULL, IDC_CROSS);
+    SetClassLongPtr(hwnd, -12, (LONG_PTR)cursor);
+    SetCursor(cursor);
+}
+
+void paintwindow(HBRUSH brush, HDC &hdc, HWND &hwnd) {
+    RECT rc;
+    GetClientRect(hwnd, &rc);
+    SetMapMode(hdc, MM_ANISOTROPIC); 
+    SetWindowExtEx(hdc, 100, 100, NULL); 
+    SetViewportExtEx(hdc, rc.right, rc.bottom, NULL); 
+    FillRect(hdc, &rc, brush);
 }
