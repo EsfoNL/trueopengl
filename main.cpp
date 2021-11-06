@@ -13,7 +13,7 @@
 
 void paintwindow(HBRUSH brush, HDC &hdc, HWND &hwnd);
 LRESULT CALLBACK mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lparam);
-int dorgb(bool &rgb, std::chrono::steady_clock &globalclock, HWND &hwnd, int &hz, HBRUSH &backgroundbrush, HDC &hdc);
+int dorgb(bool &rgb, std::chrono::steady_clock &globalclock, HWND &hwnd, float &hz, HBRUSH &backgroundbrush, HDC &hdc);
 void switchcursor(HCURSOR &cursor, HWND &hwnd);
 
 /**
@@ -29,7 +29,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
     //variables
     std::thread nothing;
     HBRUSH backgroundbrush = CreateSolidBrush(RGB(0,0,0));
-    int hz = 1;
+    float hz = 1;
     bool rgb = false;
     std::chrono::steady_clock globalclock = std::chrono::steady_clock();
     HCURSOR cursor = (HCURSOR)LoadCursor(NULL, IDC_CROSS);
@@ -81,9 +81,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
         switch (msg.message) {
             //toggles between arrow pointer and cross pointer
             //also manages rgb state
-            case WM_KEYUP:
             case WM_LBUTTONUP:
             case WM_RBUTTONUP:
+                switchcursor(cursor, window);
+            case WM_KEYUP:
                 {   
                     switch (msg.wParam) {
                         //triggers on r and toggles rgb on
@@ -91,12 +92,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
                             rgb = !rgb;
                             if (rgb) {
                                 std::thread(dorgb, std::ref(rgb), std::ref(globalclock), std::ref(window), std::ref(hz), std::ref(backgroundbrush), std::ref(hdc)).detach();
-                            } else {
-
                             }
                             break;
-                        default:
-                            switchcursor(cursor, window);
+                        //triggers on i, increases hz
+                        case 0x49:
+                            hz *= 2;
+                            break;
+                        //triggers on o, increases hz
+                        case 0x4F:
+                            hz /= 2;
+                            break;
                     }
                 }
             case WM_PAINT:
@@ -138,8 +143,8 @@ LRESULT CALLBACK mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lp
  * @param hz 
  * @param backgroundbrush 
  */
-int dorgb(bool &rgb, std::chrono::steady_clock &globalclock, HWND &hwnd, int &hz, HBRUSH &backgroundbrush, HDC &hdc) {
-    std::chrono::time_point untilwaittime = globalclock.now() + std::chrono::seconds(1/hz);
+int dorgb(bool &rgb, std::chrono::steady_clock &globalclock, HWND &hwnd, float &hz, HBRUSH &backgroundbrush, HDC &hdc) {
+    std::chrono::time_point untilwaittime = globalclock.now() + std::chrono::milliseconds((int)(1000/hz));
     std::uniform_int_distribution randgen(0,255);
     std::random_device randsource;
     COLORREF color;
@@ -153,7 +158,7 @@ int dorgb(bool &rgb, std::chrono::steady_clock &globalclock, HWND &hwnd, int &hz
         } else {
             std::this_thread::sleep_until(untilwaittime);
         }
-        untilwaittime += std::chrono::seconds(1/hz);
+        untilwaittime += std::chrono::milliseconds((int)(1000/hz));
     }
 
     return 0;
