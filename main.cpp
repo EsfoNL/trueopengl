@@ -16,6 +16,37 @@ LRESULT CALLBACK mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lp
 int dorgb(bool &rgb, std::chrono::steady_clock &globalclock, HWND &hwnd, float &hz, HBRUSH &backgroundbrush, HDC &hdc);
 void switchcursor(HCURSOR &cursor, HWND &hwnd);
 
+class RenderBuffer {
+    private:
+        int bytesize;
+        int size;
+        GLfloat* buffer;
+    public:
+        RenderBuffer(GLfloat* input, int insize) {
+            bytesize = insize*sizeof(GLfloat);
+            size = insize;
+            buffer = new GLfloat[size];
+            std::copy(input, input + size, buffer);
+        }
+        void setbuffer(GLfloat* input, int insize) {
+            bytesize = size*sizeof(GLfloat);
+            size = insize;
+            delete buffer;
+            buffer = new GLfloat[size];
+            std::copy(input, input + size, buffer);
+        }
+        const GLfloat* getbuffer() {
+            return buffer;
+        }
+        unsigned int getbytesize() {
+            return bytesize;
+        }
+        int getsize() {
+            return size;
+        }
+};
+
+
 /**
  * @brief win main function
  * 
@@ -102,18 +133,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
     
     
     //! first render
-    std::vector<GLfloat> buffer = {
+    GLfloat buffer[] = {
         -1.0f, -1.0f,  0.0f,
          1.0f, -1.0f,  0.0f,
          1.0f,  1.0f,  0.0f,
     };
 
-    GLfloat* workingbuffer = new GLfloat[buffer.size()];
-    std::copy(buffer.begin(),buffer.end(),workingbuffer);
+    RenderBuffer workingbuffer(buffer, 10);
+
     GLuint bufferid;
     glGenBuffers(1, &bufferid);
     glBindBuffer(GL_ARRAY_BUFFER, bufferid);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*buffer.size(), workingbuffer, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, workingbuffer.getbytesize(), workingbuffer.getbuffer(), GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, bufferid);
