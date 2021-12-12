@@ -102,17 +102,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
     
     
     //! first render
-    static const GLfloat buffer[] = {
+    std::vector<GLfloat> buffer = {
         -1.0f, -1.0f,  0.0f,
          1.0f, -1.0f,  0.0f,
          1.0f,  1.0f,  0.0f,
     };
-    
+
+    GLfloat* workingbuffer = new GLfloat[buffer.size()];
+    std::copy(buffer.begin(),buffer.end(),workingbuffer);
     GLuint bufferid;
-    
     glGenBuffers(1, &bufferid);
     glBindBuffer(GL_ARRAY_BUFFER, bufferid);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(buffer), buffer, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*buffer.size(), workingbuffer, GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, bufferid);
@@ -156,3 +157,4 @@ LRESULT CALLBACK mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lp
     }
     return DefWindowProc(hwnd, uint, wparam, lparam);
 }
+ 
