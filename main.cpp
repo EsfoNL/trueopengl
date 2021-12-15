@@ -8,21 +8,29 @@
 #include <string>
 #include <array>
 #include <vector>
+#include <variant>
 #include <random>
 #include <thread>
+#include <ft2build.h>
+
 
 void paintwindow(HBRUSH brush, HDC &hdc, HWND &hwnd);
 LRESULT CALLBACK mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lparam);
 int dorgb(bool &rgb, std::chrono::steady_clock &globalclock, HWND &hwnd, float &hz, HBRUSH &backgroundbrush, HDC &hdc);
 void switchcursor(HCURSOR &cursor, HWND &hwnd);
 
-class RenderBuffer {
+//layer types
+/**
+ * @brief 
+ * 
+ */
+class VertexRenderBuffer {
     private:
         int bytesize;
         int size;
         GLfloat* buffer;
     public:
-        RenderBuffer(GLfloat* input, int insize) {
+        VertexRenderBuffer(GLfloat* input, int insize) {
             bytesize = insize*sizeof(GLfloat);
             size = insize;
             buffer = new GLfloat[size];
@@ -46,6 +54,23 @@ class RenderBuffer {
         }
 };
 
+class Placeholder {};
+
+//layers variant typedef
+typedef std::variant<VertexRenderBuffer, Placeholder> Layer;
+
+//render data container
+class Renderdata {
+    public:
+        Layer* Layers;
+        Renderdata() {
+
+        }
+        void addlayer( ) {
+
+        }
+        void deletelayer();
+};
 
 /**
  * @brief win main function
@@ -139,7 +164,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
          1.0f,  1.0f,  0.0f,
     };
 
-    RenderBuffer workingbuffer(buffer, 10);
+    VertexRenderBuffer workingbuffer(buffer, 10);
 
     GLuint bufferid;
     glGenBuffers(1, &bufferid);
