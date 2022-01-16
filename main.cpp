@@ -11,66 +11,13 @@
 #include <variant>
 #include <random>
 #include <thread>
-#include <ft2build.h>
+#include <freetype2/freetype/config/ftheader.h>
+#include <memory>
+#include "libs/types.cpp"
 
-
-void paintwindow(HBRUSH brush, HDC &hdc, HWND &hwnd);
+//function definitions
 LRESULT CALLBACK mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lparam);
-int dorgb(bool &rgb, std::chrono::steady_clock &globalclock, HWND &hwnd, float &hz, HBRUSH &backgroundbrush, HDC &hdc);
-void switchcursor(HCURSOR &cursor, HWND &hwnd);
-
-//layer types
-/**
- * @brief 
- * 
- */
-class VertexRenderBuffer {
-    private:
-        int bytesize;
-        int size;
-        GLfloat* buffer;
-    public:
-        VertexRenderBuffer(GLfloat* input, int insize) {
-            bytesize = insize*sizeof(GLfloat);
-            size = insize;
-            buffer = new GLfloat[size];
-            std::copy(input, input + size, buffer);
-        }
-        void setbuffer(GLfloat* input, int insize) {
-            bytesize = size*sizeof(GLfloat);
-            size = insize;
-            delete buffer;
-            buffer = new GLfloat[size];
-            std::copy(input, input + size, buffer);
-        }
-        const GLfloat* getbuffer() {
-            return buffer;
-        }
-        unsigned int getbytesize() {
-            return bytesize;
-        }
-        int getsize() {
-            return size;
-        }
-};
-
-class Placeholder {};
-
-//layers variant typedef
-typedef std::variant<VertexRenderBuffer, Placeholder> Layer;
-
-//render data container
-class Renderdata {
-    public:
-        Layer* Layers;
-        Renderdata() {
-
-        }
-        void addlayer( ) {
-
-        }
-        void deletelayer();
-};
+void render(HWND &window, RenderData &renderdata, const std::chrono::steady_clock &globalclock);
 
 /**
  * @brief win main function
@@ -83,17 +30,15 @@ class Renderdata {
  */
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow) {
     
+    //constants
+    const std::chrono::steady_clock globalclock = std::chrono::steady_clock();
+
     //variables
-    std::thread nothing;
     HBRUSH backgroundbrush = CreateSolidBrush(RGB(0,0,0));
-    float hz = 1;
-    bool rgb = false;
-    std::chrono::steady_clock globalclock = std::chrono::steady_clock();
     HCURSOR cursor = (HCURSOR)LoadCursor(NULL, IDC_CROSS);
 
     //set up window class
-    LPCWSTR windowname = L"HELLO";
-    windowname = L"miauw";
+    LPCWSTR windowname = L"TrueOpenGL";
     WNDCLASSEXW windclass = {};
     windclass.cbSize = sizeof(windclass);
     windclass.hInstance = hInstance;
@@ -129,56 +74,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
     ShowWindow(window, nCmdShow);
     MSG msg = { };
 
-    //! setup ipengl context
-    HDC hdc = GetDC(window);
-    PIXELFORMATDESCRIPTOR pixelformat = {
-        sizeof(pixelformat),                                        //size of pixelformat
-        1,                                                          //version number
-        PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER, //support OpenGL + window drawing + double buffered
-        PFD_TYPE_RGBA,                                              //pixel color type: rgba
-        24,                                                         //color 24 bit depth (r + g + b)
-        0, 0, 0, 0, 0, 0,                                           //unused color bits
-        8,                                                          //alpha channel 8 bit depth
-        0,                                                          //shift bit ignored
-        0,                                                          //no accumilation buffer
-        0, 0, 0, 0,                                                 //ignored accum bits
-        32,                                                         //z-buffer 32 bit depth
-        0,                                                          //no stencil buffer
-        0,                                                          //no auxiliary buffer
-        PFD_MAIN_PLANE,                                             //main layer
-        0,                                                          //reserved
-        0, 0, 0                                                     //layer masks ignored
-    };
-    int iPixelformat = ChoosePixelFormat(hdc, &pixelformat);
-    SetPixelFormat(hdc, iPixelformat, &pixelformat);
-    HGLRC hglrc = wglCreateContext(hdc);
-    wglMakeCurrent(hdc, hglrc);
-    GLenum err = glewInit();
-
+    RenderData renderdata;
+    renderdata.mtx.unlock();
+    //! setup rendering thread
+    std::thread(render, std::ref(window), std::ref(renderdata), std::ref(globalclock)).detach();
     
-    
-    //! first render
-    GLfloat buffer[] = {
-        -1.0f, -1.0f,  0.0f,
-         1.0f, -1.0f,  0.0f,
-         1.0f,  1.0f,  0.0f,
-    };
-
-    VertexRenderBuffer workingbuffer(buffer, 10);
-
-    GLuint bufferid;
-    glGenBuffers(1, &bufferid);
-    glBindBuffer(GL_ARRAY_BUFFER, bufferid);
-    glBufferData(GL_ARRAY_BUFFER, workingbuffer.getbytesize(), workingbuffer.getbuffer(), GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, bufferid);
-    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,0,(void*)0);
-    glDrawArrays(GL_TRIANGLES, 0,3);
-    glDisableVertexAttribArray(0);
-
-    SwapBuffers(hdc);
-
 
     while (GetMessage(&msg, NULL, 0, 0)) {
         TranslateMessage(&msg);
@@ -213,4 +113,123 @@ LRESULT CALLBACK mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lp
     }
     return DefWindowProc(hwnd, uint, wparam, lparam);
 }
- 
+
+//!render functions
+
+//render vertex buffer layer
+void renderlayer(VertexBuffer vertexbuffer) {
+    GLuint bufferid;
+    glGenBuffers(1, &bufferid);
+    glBindBuffer(GL_ARRAY_BUFFER, bufferid);
+    glBufferData(GL_ARRAY_BUFFER, vertexbuffer.getbytesize(), vertexbuffer.buffer.get(), GL_STATIC_DRAW);
+
+    
+    glBindBuffer(GL_ARRAY_BUFFER, bufferid);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,0,(void*)0);
+    glDrawArrays(GL_TRIANGLES, 0, (int)(vertexbuffer.getbytesize()/3));
+}
+
+void renderlayer(PlaceHolder placeholder) {
+
+};
+
+//render int layer
+
+void render(HWND &window, RenderData &renderdata, const std::chrono::steady_clock &globalclock) {
+    HDC hdc = GetDC(window);
+    PIXELFORMATDESCRIPTOR pixelformat = {
+        sizeof(pixelformat),                                        //size of pixelformat
+        1,                                                          //version number
+        PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER, //support OpenGL + window drawing + double buffered
+        PFD_TYPE_RGBA,                                              //pixel color type: rgba
+        24,                                                         //color 24 bit depth (r + g + b)
+        0, 0, 0, 0, 0, 0,                                           //unused color bits
+        8,                                                          //alpha channel 8 bit depth
+        0,                                                          //shift bit ignored
+        0,                                                          //no accumilation buffer
+        0, 0, 0, 0,                                                 //ignored accum bits
+        32,                                                         //z-buffer 32 bit depth
+        0,                                                          //no stencil buffer
+        0,                                                          //no auxiliary buffer
+        PFD_MAIN_PLANE,                                             //main layer
+        0,                                                          //reserved
+        0, 0, 0                                                     //layer masks ignored
+    };
+    int iPixelformat = ChoosePixelFormat(hdc, &pixelformat);
+    SetPixelFormat(hdc, iPixelformat, &pixelformat);
+    HGLRC hglrc = wglCreateContext(hdc);
+    wglMakeCurrent(hdc, hglrc);
+    GLenum err = glewInit();
+
+    glEnableVertexAttribArray(0);
+    renderdata.mtx.lock();
+    
+    //! first render
+    GLfloat buffer[] = {
+        -1.0f,-1.0f,-1.0f, // triangle 1 : begin
+        -1.0f,-1.0f, 1.0f,
+        -1.0f, 1.0f, 1.0f, // triangle 1 : end
+        1.0f, 1.0f,-1.0f, // triangle 2 : begin
+        -1.0f,-1.0f,-1.0f,
+        -1.0f, 1.0f,-1.0f, // triangle 2 : end
+        1.0f,-1.0f, 1.0f,
+        -1.0f,-1.0f,-1.0f,
+        1.0f,-1.0f,-1.0f,
+        1.0f, 1.0f,-1.0f,
+        1.0f,-1.0f,-1.0f,
+        -1.0f,-1.0f,-1.0f,
+        -1.0f,-1.0f,-1.0f,
+        -1.0f, 1.0f, 1.0f,
+        -1.0f, 1.0f,-1.0f,
+        1.0f,-1.0f, 1.0f,
+        -1.0f,-1.0f, 1.0f,
+        -1.0f,-1.0f,-1.0f,
+        -1.0f, 1.0f, 1.0f,
+        -1.0f,-1.0f, 1.0f,
+        1.0f,-1.0f, 1.0f,
+        1.0f, 1.0f, 1.0f,
+        1.0f,-1.0f,-1.0f,
+        1.0f, 1.0f,-1.0f,
+        1.0f,-1.0f,-1.0f,
+        1.0f, 1.0f, 1.0f,
+        1.0f,-1.0f, 1.0f,
+        1.0f, 1.0f, 1.0f,
+        1.0f, 1.0f,-1.0f,
+        -1.0f, 1.0f,-1.0f,
+        1.0f, 1.0f, 1.0f,
+        -1.0f, 1.0f,-1.0f,
+        -1.0f, 1.0f, 1.0f,
+        1.0f, 1.0f, 1.0f,
+        -1.0f, 1.0f, 1.0f,
+        1.0f,-1.0f, 1.0f
+    };
+
+    VertexBuffer workingbuffer(buffer, 108);
+    renderdata.appendlayer(workingbuffer);
+    renderdata.mtx.unlock();
+
+    //timepoint for next frame
+    std::chrono::time_point nextframe = globalclock.now() + std::chrono::milliseconds((int)(1000/renderdata.maxfps));
+
+    while (true) {
+        //lock the renderdata
+        renderdata.mtx.lock();
+
+            for (int i = 0; i < renderdata.getlayercount(); i++) {
+                renderdata.layers.get()[i];
+            }
+        
+        //unlock the renderdata
+        renderdata.mtx.unlock();
+    
+        //swap buffer to display render
+        SwapBuffers(hdc);
+
+        //timing stuff
+        std::this_thread::sleep_until(nextframe);
+        nextframe += std::chrono::milliseconds((int)(1000/renderdata.maxfps));
+        if (globalclock.now() > nextframe) {
+            globalclock.now() + std::chrono::milliseconds((int)(1000/renderdata.maxfps));
+        }
+    }
+}

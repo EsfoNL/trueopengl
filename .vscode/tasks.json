@@ -3,22 +3,23 @@
         {
             "type": "cppbuild",
             "label": "C/C++: g++.exe build active file",
-            "command": "C:\\msys64\\mingw64\\bin\\g++.exe",
-            "args": [
+            "command": "make main.exe",
+            /*"args": [
                 "-fdiagnostics-color=always",
+                "-static-libstdc++",
                 "-mwindows",
-                "-static",
                 "-g",
                 "${file}",
                 "-o",
                 "${fileDirname}\\${fileBasenameNoExtension}.exe",
+                "-LC:\\msys64\\mingw64\\lib",
+                "-lglew32",
+                "-lfreetype",
                 "-LC:/Program Files (x86)/Windows Kits/10/Lib/10.0.22000.0/um/x64",
                 "-lGdi32",
                 "-lOpenGL32",
                 "-lpthread",
-                "-LC:\\msys64\\mingw64\bin",
-                "-lglew32.dll",
-            ],
+            ],*/
             "options": {
                 "cwd": "${fileDirname}"
             },

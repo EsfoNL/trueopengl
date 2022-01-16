@@ -41,6 +41,13 @@
         "tuple": "cpp",
         "typeinfo": "cpp",
         "utility": "cpp",
-        "variant": "cpp"
-    }
+        "variant": "cpp",
+        "condition_variable": "cpp",
+        "map": "cpp",
+        "iostream": "cpp",
+        "istream": "cpp",
+        "typeindex": "cpp",
+        "memory": "cpp"
+    },
+    "C_Cpp.errorSquiggles": "Enabled"
 }
