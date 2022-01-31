@@ -13,11 +13,12 @@
 #include <thread>
 #include <freetype2/freetype/config/ftheader.h>
 #include <memory>
-#include "libs/types.cpp"
+#include <lib/types.h>
 
 //function definitions
 LRESULT CALLBACK mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lparam);
-void render(HWND &window, RenderData &renderdata, const std::chrono::steady_clock &globalclock);
+void render(HWND &window, types::RenderData &renderdata, const std::chrono::steady_clock &globalclock, bool &running);
+types::VertexBuffer mirrorvertexbuffer_y(types::VertexBuffer vertexbuffer);
 
 /**
  * @brief win main function
@@ -47,7 +48,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
     windclass.hbrBackground = std::ref(backgroundbrush);
     windclass.hCursor = cursor;
 
-    
+        
     //registers window class
     RegisterClassExW(&windclass);
 
@@ -74,10 +75,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
     ShowWindow(window, nCmdShow);
     MSG msg = { };
 
-    RenderData renderdata;
+    types::RenderData renderdata;
+    bool renderrunning = true;
+
     renderdata.mtx.unlock();
     //! setup rendering thread
-    std::thread(render, std::ref(window), std::ref(renderdata), std::ref(globalclock)).detach();
+    std::thread(render, std::ref(window), std::ref(renderdata), std::ref(globalclock), std::ref(renderrunning)).detach();
     
 
     while (GetMessage(&msg, NULL, 0, 0)) {
@@ -85,9 +88,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
         
         //! message handeling area
         switch (msg.message) {
-
+            case WM_KEYDOWN: {
+                switch (msg.wParam) {
+                    //arrow up
+                    case 0x26:
+                        renderdata.maxfps++;
+                        break;
+                    //arrow down
+                    case 0x27:
+                        renderdata.maxfps--;
+                        break;
+                }
+            }
         }
-
         DispatchMessage(&msg);
     }
     return 0;
@@ -110,6 +123,8 @@ LRESULT CALLBACK mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lp
     case WM_DESTROY:
         PostQuitMessage(0);
         return 0;
+    //keyboard input
+
     }
     return DefWindowProc(hwnd, uint, wparam, lparam);
 }
@@ -117,25 +132,25 @@ LRESULT CALLBACK mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lp
 //!render functions
 
 //render vertex buffer layer
-void renderlayer(VertexBuffer vertexbuffer) {
+void renderlayer(types::VertexBuffer vertexbuffer) {
     GLuint bufferid;
     glGenBuffers(1, &bufferid);
     glBindBuffer(GL_ARRAY_BUFFER, bufferid);
-    glBufferData(GL_ARRAY_BUFFER, vertexbuffer.getbytesize(), vertexbuffer.buffer.get(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertexbuffer.bytesize, vertexbuffer.storedarray.get(), GL_STATIC_DRAW);
 
     
     glBindBuffer(GL_ARRAY_BUFFER, bufferid);
     glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,0,(void*)0);
-    glDrawArrays(GL_TRIANGLES, 0, (int)(vertexbuffer.getbytesize()/3));
+    glDrawArrays(GL_TRIANGLES, 0, (int)(vertexbuffer.bytesize/3));
 }
 
-void renderlayer(PlaceHolder placeholder) {
+void renderlayer(types::PlaceHolder placeholder) {
 
 };
 
 //render int layer
 
-void render(HWND &window, RenderData &renderdata, const std::chrono::steady_clock &globalclock) {
+void render(HWND &window, types::RenderData &renderdata, const std::chrono::steady_clock &globalclock, bool &running) {
     HDC hdc = GetDC(window);
     PIXELFORMATDESCRIPTOR pixelformat = {
         sizeof(pixelformat),                                        //size of pixelformat
@@ -165,7 +180,7 @@ void render(HWND &window, RenderData &renderdata, const std::chrono::steady_cloc
     renderdata.mtx.lock();
     
     //! first render
-    GLfloat buffer[] = {
+    /*GLfloat buffer[] = {
         -1.0f,-1.0f,-1.0f, // triangle 1 : begin
         -1.0f,-1.0f, 1.0f,
         -1.0f, 1.0f, 1.0f, // triangle 1 : end
@@ -202,21 +217,27 @@ void render(HWND &window, RenderData &renderdata, const std::chrono::steady_cloc
         1.0f, 1.0f, 1.0f,
         -1.0f, 1.0f, 1.0f,
         1.0f,-1.0f, 1.0f
+    };*/
+
+    GLfloat buffer[] = {
+        -1.0f, -1.0f, 0.0f,
+        1.0f, -1.0f, 0.0f,
+        0.0f, 1.0f, 0.0f
     };
 
-    VertexBuffer workingbuffer(buffer, 108);
+    types::VertexBuffer workingbuffer(buffer, 9);
     renderdata.appendlayer(workingbuffer);
     renderdata.mtx.unlock();
 
     //timepoint for next frame
     std::chrono::time_point nextframe = globalclock.now() + std::chrono::milliseconds((int)(1000/renderdata.maxfps));
 
-    while (true) {
+    while (running) {
         //lock the renderdata
         renderdata.mtx.lock();
 
-            for (int i = 0; i < renderdata.getlayercount(); i++) {
-                renderdata.layers.get()[i];
+            for (int i = 0; i < renderdata.layercount; i++) {
+                renderlayer(renderdata.vertexbuffers[i]);
             }
         
         //unlock the renderdata
@@ -224,6 +245,8 @@ void render(HWND &window, RenderData &renderdata, const std::chrono::steady_cloc
     
         //swap buffer to display render
         SwapBuffers(hdc);
+        //flip buffer
+        renderdata.vertexbuffers[0] = mirrorvertexbuffer_y(renderdata.vertexbuffers[0]);
 
         //timing stuff
         std::this_thread::sleep_until(nextframe);
@@ -232,4 +255,11 @@ void render(HWND &window, RenderData &renderdata, const std::chrono::steady_cloc
             globalclock.now() + std::chrono::milliseconds((int)(1000/renderdata.maxfps));
         }
     }
+}
+
+types::VertexBuffer mirrorvertexbuffer_y(types::VertexBuffer vertexbuffer) {
+    for (int i = 0; i < vertexbuffer.size; i++) {
+        vertexbuffer.storedarray[i] = -vertexbuffer.storedarray[i];
+    }
+    return vertexbuffer;
 }
