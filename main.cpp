@@ -226,7 +226,7 @@ void render(HWND &window, types::RenderData &renderdata, const std::chrono::stea
     };
 
     types::VertexBuffer workingbuffer(buffer, 9);
-    renderdata.appendlayer(workingbuffer);
+    renderdata.append(workingbuffer);
     renderdata.mtx.unlock();
 
     //timepoint for next frame
@@ -236,18 +236,19 @@ void render(HWND &window, types::RenderData &renderdata, const std::chrono::stea
         //lock the renderdata
         renderdata.mtx.lock();
 
-            for (int i = 0; i < renderdata.layercount; i++) {
-                renderlayer(renderdata.vertexbuffers[i]);
+            for (int i = 0; i < renderdata.size; i++) {
+                renderlayer(renderdata.storedarray[i]);
             }
+
+        //swap buffer to display render
+        SwapBuffers(hdc);
+        //flip buffer
+        // renderdata.storedarray[0] = mirrorvertexbuffer_y(renderdata.storedarray[0]);
+
         
         //unlock the renderdata
         renderdata.mtx.unlock();
     
-        //swap buffer to display render
-        SwapBuffers(hdc);
-        //flip buffer
-        renderdata.vertexbuffers[0] = mirrorvertexbuffer_y(renderdata.vertexbuffers[0]);
-
         //timing stuff
         std::this_thread::sleep_until(nextframe);
         nextframe += std::chrono::milliseconds((int)(1000/renderdata.maxfps));

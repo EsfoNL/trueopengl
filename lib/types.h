@@ -14,9 +14,7 @@ namespace types {
                 ArrayHolder(ArrayHolder<T>& inputarrayholder);
                 ArrayHolder<T>& operator= (ArrayHolder<T>& inputarrayholder);
                 ArrayHolder<T>& operator= (const ArrayHolder<T>& inputarrayholder);
-                void append(T input) {
-                
-                }
+                void append(T& input);
         };
 
         struct PlaceHolder {};
@@ -27,7 +25,8 @@ namespace types {
 
         //render data container
         struct RenderData: ArrayHolder<VertexBuffer> {
-                
+                std::mutex mtx;
+                int maxfps = 60;
         };
 
         //objects variant typedef

@@ -42,8 +42,20 @@ namespace types {
             return *this;
         }
 
+        template <class T>
+        void ArrayHolder<T>::append(T& input) {
+            size++;
+            bytesize += sizeof(T);
+            std::unique_ptr<T[]> oldarray = std::make_unique<T[]>(size);;
+            storedarray.swap(oldarray);
+            std::copy(oldarray.get(), oldarray.get() + size - 2, storedarray.get());
+            storedarray[size - 1] = input;
+        }
+
         //constructors
         
 
         template class ArrayHolder<GLfloat>;
+        template class ArrayHolder<ArrayHolder<GLfloat>>;
+        class Renderdata;
 }
