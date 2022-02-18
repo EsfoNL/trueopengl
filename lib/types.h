@@ -6,7 +6,7 @@
 namespace types {
         template <class T>
         struct ArrayHolder {
-                std::unique_ptr<T[]> storedarray = nullptr;
+                T* storedarray = nullptr;
                 int size = 0;
                 int bytesize = 0;
                 ArrayHolder(T* inputarray, int inputsize);
@@ -15,6 +15,7 @@ namespace types {
                 ArrayHolder<T>& operator= (ArrayHolder<T>& inputarrayholder);
                 ArrayHolder<T>& operator= (const ArrayHolder<T>& inputarrayholder);
                 void append(T& input);
+                ~ArrayHolder();
         };
 
         struct PlaceHolder {};
@@ -26,7 +27,7 @@ namespace types {
         //render data container
         struct RenderData: ArrayHolder<VertexBuffer> {
                 std::mutex mtx;
-                int maxfps = 60;
+                int maxfps = 1;
         };
 
         //objects variant typedef

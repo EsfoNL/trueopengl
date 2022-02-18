@@ -92,11 +92,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
                 switch (msg.wParam) {
                     //arrow up
                     case 0x26:
+                        renderdata.mtx.lock();
                         renderdata.maxfps++;
+                        renderdata.mtx.unlock();
                         break;
                     //arrow down
                     case 0x27:
+                        renderdata.mtx.lock();
                         renderdata.maxfps--;
+                        renderdata.mtx.unlock();
                         break;
                 }
             }
@@ -136,7 +140,7 @@ void renderlayer(types::VertexBuffer vertexbuffer) {
     GLuint bufferid;
     glGenBuffers(1, &bufferid);
     glBindBuffer(GL_ARRAY_BUFFER, bufferid);
-    glBufferData(GL_ARRAY_BUFFER, vertexbuffer.bytesize, vertexbuffer.storedarray.get(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertexbuffer.bytesize, vertexbuffer.storedarray, GL_STATIC_DRAW);
 
     
     glBindBuffer(GL_ARRAY_BUFFER, bufferid);
@@ -245,16 +249,17 @@ void render(HWND &window, types::RenderData &renderdata, const std::chrono::stea
         //flip buffer
         // renderdata.storedarray[0] = mirrorvertexbuffer_y(renderdata.storedarray[0]);
 
-        
+        renderdata.storedarray[0] = mirrorvertexbuffer_y(renderdata.storedarray[0]);
         //unlock the renderdata
-        renderdata.mtx.unlock();
+        
     
         //timing stuff
         std::this_thread::sleep_until(nextframe);
-        nextframe += std::chrono::milliseconds((int)(1000/renderdata.maxfps));
+        nextframe += std::chrono::milliseconds(1000/renderdata.maxfps);
         if (globalclock.now() > nextframe) {
-            globalclock.now() + std::chrono::milliseconds((int)(1000/renderdata.maxfps));
+            nextframe = globalclock.now() + std::chrono::milliseconds(1000/renderdata.maxfps);
         }
+        renderdata.mtx.unlock();
     }
 }
 
