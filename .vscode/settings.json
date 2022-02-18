@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        ".makefile": "makefile",
         "array": "cpp",
         "atomic": "cpp",
         "bit": "cpp",
@@ -47,7 +48,8 @@
         "iostream": "cpp",
         "istream": "cpp",
         "typeindex": "cpp",
-        "memory": "cpp"
+        "memory": "cpp",
+        "mutex": "cpp"
     },
     "C_Cpp.errorSquiggles": "Enabled"
 }

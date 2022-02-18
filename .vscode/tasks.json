@@ -1,36 +1,17 @@
 {
     "tasks": [
         {
-            "type": "cppbuild",
+            "type": "shell",
             "label": "C/C++: g++.exe build active file",
-            "command": "make main.exe",
-            /*"args": [
-                "-fdiagnostics-color=always",
-                "-static-libstdc++",
-                "-mwindows",
-                "-g",
-                "${file}",
-                "-o",
-                "${fileDirname}\\${fileBasenameNoExtension}.exe",
-                "-LC:\\msys64\\mingw64\\lib",
-                "-lglew32",
-                "-lfreetype",
-                "-LC:/Program Files (x86)/Windows Kits/10/Lib/10.0.22000.0/um/x64",
-                "-lGdi32",
-                "-lOpenGL32",
-                "-lpthread",
-            ],*/
+            "command": "make",
             "options": {
-                "cwd": "${fileDirname}"
+                "cwd": "${fileDirname}",
             },
-            "problemMatcher": [
-                "$gcc"
-            ],
+            "problemMatcher": [],
             "group": {
                 "kind": "build",
                 "isDefault": true
-            },
-            "detail": "compiler: C:\\msys64\\mingw64\\bin\\g++.exe"
+            }
         }
     ],
     "version": "2.0.0"
