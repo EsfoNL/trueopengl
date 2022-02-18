@@ -97,7 +97,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
                         renderdata.mtx.unlock();
                         break;
                     //arrow down
-                    case 0x27:
+                    case 0x28:
                         renderdata.mtx.lock();
                         renderdata.maxfps--;
                         renderdata.mtx.unlock();
@@ -252,14 +252,15 @@ void render(HWND &window, types::RenderData &renderdata, const std::chrono::stea
         renderdata.storedarray[0] = mirrorvertexbuffer_y(renderdata.storedarray[0]);
         //unlock the renderdata
         
-    
         //timing stuff
-        std::this_thread::sleep_until(nextframe);
-        nextframe += std::chrono::milliseconds(1000/renderdata.maxfps);
-        if (globalclock.now() > nextframe) {
-            nextframe = globalclock.now() + std::chrono::milliseconds(1000/renderdata.maxfps);
-        }
         renderdata.mtx.unlock();
+        unsigned int fps = renderdata.maxfps;
+        while(fps == 0) {fps = renderdata.maxfps;}
+        std::this_thread::sleep_until(nextframe);
+        nextframe += std::chrono::milliseconds(1000/fps);
+        if (globalclock.now() > nextframe) {
+            nextframe = globalclock.now() + std::chrono::milliseconds(1000/fps);
+        }
     }
 }
 

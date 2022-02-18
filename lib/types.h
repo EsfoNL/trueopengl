@@ -27,7 +27,7 @@ namespace types {
         //render data container
         struct RenderData: ArrayHolder<VertexBuffer> {
                 std::mutex mtx;
-                int maxfps = 1;
+                unsigned int maxfps = 1;
         };
 
         //objects variant typedef
