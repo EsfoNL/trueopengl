@@ -7,6 +7,7 @@ bin/main.exe:	main.cpp	bin/fileread.o	bin/types.o
 	g++.exe \
 	-Wall \
 	-I. \
+	-IC:/msys64/mingw64/include/freetype2 \
 	-static-libstdc++ \
 	-mwindows \
 	-g \

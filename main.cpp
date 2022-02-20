@@ -11,14 +11,16 @@
 #include <variant>
 #include <random>
 #include <thread>
-#include <freetype2/freetype/config/ftheader.h>
+#include <ft2build.h>
 #include <memory>
 #include <lib/types.h>
+#include FT_FREETYPE_H
 
 //function definitions
 LRESULT CALLBACK mymessageHandler(HWND hwnd, UINT uint, WPARAM wparam, LPARAM lparam);
 void render(HWND &window, types::RenderData &renderdata, const std::chrono::steady_clock &globalclock, bool &running);
 types::VertexBuffer mirrorvertexbuffer_y(types::VertexBuffer vertexbuffer);
+void RenderChar(FT_Face &face, int r_char);
 
 /**
  * @brief win main function
@@ -179,10 +181,26 @@ void render(HWND &window, types::RenderData &renderdata, const std::chrono::stea
     HGLRC hglrc = wglCreateContext(hdc);
     wglMakeCurrent(hdc, hglrc);
     GLenum err = glewInit();
+    if (GLEW_OK != err) {
+        throw -1;
+    }
 
     glEnableVertexAttribArray(0);
-    renderdata.mtx.lock();
     
+    FT_Library ftlib;
+    FT_Face face;
+    
+    int error = FT_Init_FreeType(&ftlib);
+    if (error) {throw -2;}
+    error = FT_New_Face(ftlib, "Hack-Regular.ttf", 0, &face);
+    if (error) {;}
+    error = FT_Set_Char_Size(face, 0, 16*64, 300, 300);
+    // SwapBuffers(hdc);
+
+
+
+
+    renderdata.mtx.lock();
     //! first render
     /*GLfloat buffer[] = {
         -1.0f,-1.0f,-1.0f, // triangle 1 : begin
@@ -235,20 +253,20 @@ void render(HWND &window, types::RenderData &renderdata, const std::chrono::stea
 
     //timepoint for next frame
     std::chrono::time_point nextframe = globalclock.now() + std::chrono::milliseconds((int)(1000/renderdata.maxfps));
+                RenderChar(face, 0x0061);
+        SwapBuffers(hdc);
 
     while (running) {
         //lock the renderdata
         renderdata.mtx.lock();
 
             for (int i = 0; i < renderdata.size; i++) {
-                renderlayer(renderdata.storedarray[i]);
+                // renderlayer(renderdata.storedarray[i]);
             }
 
         //swap buffer to display render
-        SwapBuffers(hdc);
-        //flip buffer
-        // renderdata.storedarray[0] = mirrorvertexbuffer_y(renderdata.storedarray[0]);
 
+        //flip buffer
         renderdata.storedarray[0] = mirrorvertexbuffer_y(renderdata.storedarray[0]);
         //unlock the renderdata
         
@@ -269,4 +287,30 @@ types::VertexBuffer mirrorvertexbuffer_y(types::VertexBuffer vertexbuffer) {
         vertexbuffer.storedarray[i] = -vertexbuffer.storedarray[i];
     }
     return vertexbuffer;
+}
+
+void RenderChar(FT_Face &face, int r_char) {
+    FT_UInt glyphindex = FT_Get_Char_Index(face, r_char);
+    int error = FT_Load_Glyph(face, glyphindex, FT_LOAD_DEFAULT);
+    if (error) {throw -2;}
+    FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL);
+    FT_Bitmap* bitmap = &face->glyph->bitmap;
+    glRasterPos2d(0,0);
+
+    glPixelStorei(GL_PACK_LSB_FIRST, false);
+    if (bitmap->pixel_mode == FT_PIXEL_MODE_GRAY && face->glyph->format == FT_GLYPH_FORMAT_BITMAP) {
+
+        GLubyte* bitmapchanged = (GLubyte*)malloc(bitmap->rows*bitmap->width);
+        std::div_t dandr = std::div(bitmap->width, 4);
+        int rowlength = (dandr.quot + (!!dandr.rem))*4;
+        for (int row = 0; row < bitmap->rows; row++) {
+            for (int pos = 0; pos < bitmap->width; pos++) {
+                bitmapchanged[row*bitmap->width + pos] = ((GLubyte*)bitmap->buffer)[pos + row*rowlength];
+            }
+        }
+        glDrawPixels((int)bitmap->width, (int)bitmap->rows, GL_LUMINANCE, GL_BYTE, bitmapchanged);
+        free(bitmapchanged);
+    } else {
+        throw -2;
+    }
 }
